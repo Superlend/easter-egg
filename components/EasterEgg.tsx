@@ -22,7 +22,7 @@ import useDimensions from "@/hooks/useDimensions";
 import axios from "axios";
 import { LoaderCircle } from "lucide-react";
 
-const cheatCode = process.env.NEXT_PUBLIC_EASTER_EGG_ONE_SECRET_CODE || "superlend";
+const cheatCode = process.env.NEXT_PUBLIC_EASTER_EGG_ONE_SECRET_CODE?.split(",") || [];
 
 const EasterEgg = () => {
 	const [inputSequence, setInputSequence] = useState("");
@@ -44,33 +44,37 @@ const EasterEgg = () => {
 
 	const [isCreatingUser, setIsCreatingUser] = useState(false);
 	const [isLoadingUser, setIsLoadingUser] = useState(false);
+	
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    setInputSequence((prev) => {
+      const updatedSequence = [...prev.split(","), event.key]
+        .slice(-cheatCode.length)
+        .join(",");
+      return updatedSequence;
+    });
+  };
 
-	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (cheatCode) {
-				setInputSequence((prev) => (prev + event.key).slice(-cheatCode.length));
-			}
-		};
-		window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown);
 
-		return () => {
-			window.removeEventListener("keydown", handleKeyDown);
-		};
-	}, [isEasterEggSolved]);
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+}, []);
 
-	useEffect(() => {
-		if (inputSequence === cheatCode) {
-			if (isEasterEggSolved) {
-				setModalOpen(false);
-				toast("You have already solved the quest.\nStay tuned for more quests!", {
-					duration: 5000,
-				});
-			} else {
-				setModalOpen(true);
-				setInputSequence("");
-			}
-		}
-	}, [inputSequence, isEasterEggSolved, isModalOpen]);
+useEffect(() => {
+  if (inputSequence === cheatCode.join(",")) {
+    if (isEasterEggSolved) {
+      setModalOpen(false);
+      toast("You have already solved the quest.\nStay tuned for more quests!", {
+        duration: 5000,
+      });
+    } else {
+      setModalOpen(true);
+      setInputSequence("");
+    }
+  }
+}, [inputSequence, isEasterEggSolved, isModalOpen]);
 
 	useEffect(() => {
 		setInputSequence("");
