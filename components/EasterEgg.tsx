@@ -22,7 +22,8 @@ import useDimensions from "@/hooks/useDimensions";
 import axios from "axios";
 import { LoaderCircle } from "lucide-react";
 
-const cheatCode = process.env.NEXT_PUBLIC_EASTER_EGG_ONE_SECRET_CODE?.split(",") || [];
+const fakeCheatCodes = process.env.NEXT_PUBLIC_EASTER_EGG_CHEAT_CODES?.split(",") || [];
+const realCheatCode = process.env.NEXT_PUBLIC_EASTER_EGG_ONE_SECRET_CODE || "";
 
 const EasterEgg = () => {
 	const [inputSequence, setInputSequence] = useState("");
@@ -44,37 +45,60 @@ const EasterEgg = () => {
 
 	const [isCreatingUser, setIsCreatingUser] = useState(false);
 	const [isLoadingUser, setIsLoadingUser] = useState(false);
-	
-useEffect(() => {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    setInputSequence((prev) => {
-      const updatedSequence = [...prev.split(","), event.key]
-        .slice(-cheatCode.length)
-        .join(",");
-      return updatedSequence;
-    });
-  };
 
-  window.addEventListener("keydown", handleKeyDown);
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			setInputSequence((prev) => {
+				if (!/^[a-zA-Z]$/.test(event.key)) return prev;
 
-  return () => {
-    window.removeEventListener("keydown", handleKeyDown);
-  };
-}, []);
+				const maxLength = Math.max(
+					...(fakeCheatCodes.map((code) => code.length) || [0]),
+					realCheatCode.length || 0
+				);
 
-useEffect(() => {
-  if (inputSequence === cheatCode.join(",")) {
-    if (isEasterEggSolved) {
-      setModalOpen(false);
-      toast("You have already solved the quest.\nStay tuned for more quests!", {
-        duration: 5000,
-      });
-    } else {
-      setModalOpen(true);
-      setInputSequence("");
-    }
-  }
-}, [inputSequence, isEasterEggSolved, isModalOpen]);
+				const updatedSequence = (prev + event.key.toLowerCase()).slice(-maxLength);
+				return updatedSequence;
+			});
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, []);
+
+	useEffect(() => {
+		if (isModalOpen) return;
+		if (!inputSequence) return;
+		if (pathname === "/easter-egg") return;
+
+		if (fakeCheatCodes.some((code) => inputSequence.includes(code))) {
+			setInputSequence("");
+			toast.success("Cheat Activated!", { duration: 2000 });
+			setTimeout(() => {
+				router.push("/easter-egg-not-found");
+			}, 2000);
+
+			return;
+		}
+
+		if (inputSequence.includes(realCheatCode)) {
+			if (isEasterEggSolved) {
+				setInputSequence("");
+				setModalOpen(false);
+				toast("You have already solved the quest.\nStay tuned for more quests!", {
+					duration: 5000,
+				});
+			} else {
+				toast.success("Cheat Activated!", { duration: 2000 });
+				setInputSequence("");
+				setTimeout(() => {
+					setModalOpen(true);
+				}, 2000);
+			}
+		}
+	}, [inputSequence, isEasterEggSolved, isModalOpen, pathname, router]);
 
 	useEffect(() => {
 		setInputSequence("");
@@ -107,7 +131,7 @@ useEffect(() => {
 					setIsLoadingUser(false);
 				});
 		}
-	}, [walletAddress, pathname]);
+	}, [walletAddress]);
 
 	// Exit early if on "/easter-egg"
 	if (pathname === "/easter-egg") {
